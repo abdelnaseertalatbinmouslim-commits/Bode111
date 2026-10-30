@@ -1,0 +1,12 @@
+{
+  "name": "eica-academy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "EICA Firebase admin bootstrap",
+  "scripts": {
+    "setup-admin": "node scripts/admin-setup.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0"
+  }
+}
