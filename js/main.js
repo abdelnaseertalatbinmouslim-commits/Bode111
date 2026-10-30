@@ -1,20 +1,45 @@
-here/* =========================================================
+/* =========================================================
    EICA - EGYPT INTERNATIONAL COMPUTER ACADEMY
-   MAIN JAVASCRIPT
+   MAIN JAVASCRIPT - STABLE VERSION
    ========================================================= */
 
 "use strict";
 
 /* =========================================================
-   1. GLOBAL ELEMENTS
+   1. GLOBAL HELPERS
    ========================================================= */
 
-const $ = (selector) => document.querySelector(selector);
+const $ = (selector, parent = document) =>
+  parent.querySelector(selector);
 
-const $$ = (selector) => document.querySelectorAll(selector);
+const $$ = (selector, parent = document) =>
+  Array.from(parent.querySelectorAll(selector));
+
+const safeStorage = {
+  get(key, fallback = null) {
+    try {
+      return localStorage.getItem(key) ?? fallback;
+    } catch (error) {
+      console.warn("LocalStorage read error:", error);
+      return fallback;
+    }
+  },
+
+  set(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn("LocalStorage write error:", error);
+    }
+  }
+};
+
+/* =========================================================
+   2. DOM ELEMENTS
+   ========================================================= */
 
 const elements = {
-  loadingScreen: $("#loadingScreen"),
+  loadingScreen: $("#loadingScreen") || $(".loading-screen"),
 
   sidebar: $("#sidebar"),
   menuToggle: $("#menuToggle"),
@@ -23,6 +48,7 @@ const elements = {
 
   settingsToggle: $("#settingsToggle"),
   settingsMenu: $("#settingsMenu"),
+
   accountToggle: $("#accountToggle"),
   accountMenu: $("#accountMenu"),
 
@@ -32,6 +58,7 @@ const elements = {
 
   loginModal: $("#loginModal"),
   registerModal: $("#registerModal"),
+
   closeLoginModal: $("#closeLoginModal"),
   closeRegisterModal: $("#closeRegisterModal"),
 
@@ -50,21 +77,25 @@ const elements = {
   backToTop: $("#backToTop")
 };
 
-
 /* =========================================================
-   2. APPLICATION STATE
+   3. APPLICATION STATE
    ========================================================= */
 
 const EICA = {
   currentUser: null,
   currentRole: null,
   isAuthenticated: false,
-  theme: localStorage.getItem("eica-theme") || "dark"
+  theme: safeStorage.get("eica-theme", "dark"),
+  toastContainer: null,
+  particlesAnimation: null
 };
 
+if (!["dark", "light"].includes(EICA.theme)) {
+  EICA.theme = "dark";
+}
 
 /* =========================================================
-   3. HELPER FUNCTIONS
+   4. GENERAL HELPERS
    ========================================================= */
 
 function showElement(element) {
@@ -82,12 +113,8 @@ function hideElement(element) {
 function setStatus(element, message, type = "error") {
   if (!element) return;
 
-  element.textContent = message;
-  element.classList.remove("success");
-
-  if (type === "success") {
-    element.classList.add("success");
-  }
+  element.textContent = message || "";
+  element.classList.toggle("success", type === "success");
 }
 
 function clearStatus(element) {
@@ -102,56 +129,102 @@ function closeAllMenus() {
   hideElement(elements.accountMenu);
 }
 
+function isAnyOverlayOpen() {
+  return Boolean(
+    elements.sidebar?.classList.contains("open") ||
+    elements.loginModal?.classList.contains("open") ||
+    elements.registerModal?.classList.contains("open")
+  );
+}
+
+function syncBodyScroll() {
+  document.body.style.overflow =
+    isAnyOverlayOpen() ? "hidden" : "";
+}
+
+function safeFocus(element) {
+  if (!element) return;
+
+  try {
+    element.focus();
+  } catch (error) {
+    console.warn("Focus error:", error);
+  }
+}
 
 /* =========================================================
-   4. LOADING SCREEN
+   5. LOADING SCREEN - FIXED
    ========================================================= */
 
-window.addEventListener("load", () => {
+let loadingScreenHidden = false;
 
+function hideLoadingScreen() {
+  const screen =
+    elements.loadingScreen ||
+    $("#loadingScreen") ||
+    $(".loading-screen");
+
+  if (!screen || loadingScreenHidden) return;
+
+  loadingScreenHidden = true;
+
+  screen.classList.add("loaded");
+
+  // حماية إضافية إذا لم يعمل انتقال CSS
   setTimeout(() => {
+    screen.style.display = "none";
+    screen.setAttribute("aria-hidden", "true");
+  }, 1400);
+}
 
-    if (elements.loadingScreen) {
-      elements.loadingScreen.classList.add("loaded");
-    }
+// إذا كانت الصفحة محملة بالفعل
+if (document.readyState === "complete") {
+  hideLoadingScreen();
+} else {
+  window.addEventListener("load", hideLoadingScreen, {
+    once: true
+  });
+}
 
-  }, 900);
-
-});
-
+// عدم ترك المقدمة معلقة لأي سبب
+setTimeout(hideLoadingScreen, 5000);
 
 /* =========================================================
-   5. SIDEBAR
+   6. SIDEBAR
    ========================================================= */
 
 function openSidebar() {
+  if (!elements.sidebar) return;
+
+  closeAllMenus();
 
   showElement(elements.sidebar);
   showElement(elements.sidebarOverlay);
 
-  document.body.style.overflow = "hidden";
-
+  syncBodyScroll();
 }
 
 function closeSidebar() {
-
   hideElement(elements.sidebar);
   hideElement(elements.sidebarOverlay);
 
-  document.body.style.overflow = "";
-
+  syncBodyScroll();
 }
 
 elements.menuToggle?.addEventListener("click", openSidebar);
 
-elements.closeSidebar?.addEventListener("click", closeSidebar);
+elements.closeSidebar?.addEventListener(
+  "click",
+  closeSidebar
+);
 
-elements.sidebarOverlay?.addEventListener("click", closeSidebar);
+elements.sidebarOverlay?.addEventListener(
+  "click",
+  closeSidebar
+);
 
 $$(".side-navigation a").forEach(link => {
-
   link.addEventListener("click", () => {
-
     $$(".nav-link").forEach(item => {
       item.classList.remove("active");
     });
@@ -159,68 +232,59 @@ $$(".side-navigation a").forEach(link => {
     link.classList.add("active");
 
     closeSidebar();
-
   });
-
 });
 
-
 /* =========================================================
-   6. SETTINGS MENU
+   7. SETTINGS MENU
    ========================================================= */
 
-elements.settingsToggle?.addEventListener("click", (event) => {
-
+elements.settingsToggle?.addEventListener("click", event => {
   event.stopPropagation();
 
   hideElement(elements.accountMenu);
 
   elements.settingsMenu?.classList.toggle("open");
-
 });
 
-
 /* =========================================================
-   7. ACCOUNT MENU
+   8. ACCOUNT MENU
    ========================================================= */
 
-elements.accountToggle?.addEventListener("click", (event) => {
-
+elements.accountToggle?.addEventListener("click", event => {
   event.stopPropagation();
 
   hideElement(elements.settingsMenu);
 
   elements.accountMenu?.classList.toggle("open");
-
 });
 
-
-document.addEventListener("click", (event) => {
-
-  const clickedInsideSettings =
+document.addEventListener("click", event => {
+  const insideSettings =
     elements.settingsMenu?.contains(event.target) ||
     elements.settingsToggle?.contains(event.target);
 
-  const clickedInsideAccount =
+  const insideAccount =
     elements.accountMenu?.contains(event.target) ||
     elements.accountToggle?.contains(event.target);
 
-  if (!clickedInsideSettings) {
+  if (!insideSettings) {
     hideElement(elements.settingsMenu);
   }
 
-  if (!clickedInsideAccount) {
+  if (!insideAccount) {
     hideElement(elements.accountMenu);
   }
-
 });
 
-
 /* =========================================================
-   8. DARK / LIGHT THEME
+   9. DARK / LIGHT THEME
    ========================================================= */
 
 function applyTheme(theme) {
+  if (!["dark", "light"].includes(theme)) {
+    theme = "dark";
+  }
 
   EICA.theme = theme;
 
@@ -230,44 +294,45 @@ function applyTheme(theme) {
   );
 
   if (elements.themeIcon) {
-
     elements.themeIcon.textContent =
       theme === "light" ? "☀" : "☾";
-
   }
 
-  localStorage.setItem("eica-theme", theme);
+  if (elements.themeToggle) {
+    elements.themeToggle.setAttribute(
+      "aria-label",
+      theme === "light"
+        ? "تفعيل الوضع الليلي"
+        : "تفعيل الوضع النهاري"
+    );
+  }
 
+  safeStorage.set("eica-theme", theme);
 }
 
 function toggleTheme() {
-
-  const newTheme =
-    EICA.theme === "dark" ? "light" : "dark";
-
-  applyTheme(newTheme);
-
+  applyTheme(
+    EICA.theme === "dark" ? "light" : "dark"
+  );
 }
 
-elements.themeToggle?.addEventListener("click", toggleTheme);
+elements.themeToggle?.addEventListener(
+  "click",
+  toggleTheme
+);
 
 elements.settingsTheme?.addEventListener("click", () => {
-
   toggleTheme();
-
   hideElement(elements.settingsMenu);
-
 });
 
 applyTheme(EICA.theme);
 
-
 /* =========================================================
-   9. LOGIN MODAL
+   10. LOGIN MODAL
    ========================================================= */
 
 function openLoginModal(type = "student") {
-
   if (!elements.loginModal) return;
 
   closeAllMenus();
@@ -280,70 +345,56 @@ function openLoginModal(type = "student") {
   }
 
   if (elements.loginTitle) {
-
     elements.loginTitle.textContent =
       isAdmin ? "دخول الإدارة" : "دخول الطلاب";
-
   }
 
   if (elements.loginDescription) {
-
     elements.loginDescription.textContent =
       isAdmin
         ? "سجّل الدخول باستخدام بيانات حساب الإدارة."
         : "أدخل بيانات حسابك الطلابي للمتابعة.";
-
   }
 
   if (elements.loginIdentifier) {
-
     elements.loginIdentifier.placeholder =
       isAdmin
         ? "اسم المستخدم أو البريد الإلكتروني"
         : "البريد الإلكتروني أو اسم المستخدم";
-
   }
 
   clearStatus(elements.loginStatus);
 
   showElement(elements.loginModal);
 
-  document.body.style.overflow = "hidden";
+  syncBodyScroll();
 
   setTimeout(() => {
-    elements.loginIdentifier?.focus();
+    safeFocus(elements.loginIdentifier);
   }, 250);
-
 }
 
-
 function closeLoginModal() {
-
   hideElement(elements.loginModal);
-
-  document.body.style.overflow = "";
 
   clearStatus(elements.loginStatus);
 
+  syncBodyScroll();
 }
-
 
 elements.closeLoginModal?.addEventListener(
   "click",
   closeLoginModal
 );
 
-elements.loginModal?.addEventListener("click", (event) => {
-
+elements.loginModal?.addEventListener("click", event => {
   if (event.target === elements.loginModal) {
     closeLoginModal();
   }
-
 });
 
-
 /* =========================================================
-   10. OPEN LOGIN BUTTONS
+   11. LOGIN BUTTONS
    ========================================================= */
 
 const studentLoginButtons = [
@@ -362,54 +413,44 @@ const adminLoginButtons = [
 ];
 
 studentLoginButtons.forEach(selector => {
-
   $(selector)?.addEventListener("click", () => {
-
     openLoginModal("student");
-
   });
-
 });
 
 adminLoginButtons.forEach(selector => {
-
   $(selector)?.addEventListener("click", () => {
-
     openLoginModal("admin");
-
   });
-
 });
 
 $("#headerLogin")?.addEventListener("click", () => {
-
   openLoginModal("student");
-
 });
 
-
 /* =========================================================
-   11. REGISTRATION MODAL
+   12. REGISTRATION MODAL
    ========================================================= */
 
 function openRegisterModal() {
+  if (!elements.registerModal) return;
 
   closeAllMenus();
-
-  showElement(elements.registerModal);
-
-  document.body.style.overflow = "hidden";
-
-}
-
-function closeRegisterModal() {
-
-  hideElement(elements.registerModal);
-
-  document.body.style.overflow = "";
+  closeSidebar();
 
   clearStatus(elements.registerStatus);
 
+  showElement(elements.registerModal);
+
+  syncBodyScroll();
+}
+
+function closeRegisterModal() {
+  hideElement(elements.registerModal);
+
+  clearStatus(elements.registerStatus);
+
+  syncBodyScroll();
 }
 
 elements.closeRegisterModal?.addEventListener(
@@ -417,39 +458,40 @@ elements.closeRegisterModal?.addEventListener(
   closeRegisterModal
 );
 
-elements.registerModal?.addEventListener("click", (event) => {
-
+elements.registerModal?.addEventListener("click", event => {
   if (event.target === elements.registerModal) {
     closeRegisterModal();
   }
-
 });
 
+// أزرار فتح التسجيل إن وجدت في HTML
+[
+  "#openRegister",
+  "#registerButton",
+  "#studentRegister",
+  "#accountRegister"
+].forEach(selector => {
+  $(selector)?.addEventListener("click", openRegisterModal);
+});
 
 /* =========================================================
-   12. CLOSE MODALS WITH ESCAPE
+   13. ESCAPE KEY
    ========================================================= */
 
-document.addEventListener("keydown", (event) => {
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return;
 
-  if (event.key === "Escape") {
-
-    closeLoginModal();
-    closeRegisterModal();
-    closeSidebar();
-    closeAllMenus();
-
-  }
-
+  closeLoginModal();
+  closeRegisterModal();
+  closeSidebar();
+  closeAllMenus();
 });
 
-
 /* =========================================================
-   13. PASSWORD VISIBILITY
+   14. PASSWORD VISIBILITY
    ========================================================= */
 
 function createPasswordToggle(input) {
-
   if (!input || input.dataset.toggleCreated) return;
 
   input.dataset.toggleCreated = "true";
@@ -465,7 +507,10 @@ function createPasswordToggle(input) {
   button.type = "button";
   button.textContent = "◉";
 
-  button.setAttribute("aria-label", "إظهار أو إخفاء كلمة المرور");
+  button.setAttribute(
+    "aria-label",
+    "إظهار أو إخفاء كلمة المرور"
+  );
 
   button.style.position = "absolute";
   button.style.left = "13px";
@@ -476,311 +521,299 @@ function createPasswordToggle(input) {
   button.style.color = "#42bfff";
   button.style.cursor = "pointer";
   button.style.fontSize = "17px";
+  button.style.zIndex = "2";
 
   input.style.paddingLeft = "42px";
 
   button.addEventListener("click", () => {
+    const show = input.type === "password";
 
-    const isPassword = input.type === "password";
+    input.type = show ? "text" : "password";
 
-    input.type = isPassword ? "text" : "password";
-
-    button.textContent = isPassword ? "◎" : "◉";
-
+    button.textContent = show ? "◎" : "◉";
   });
 
   wrapper.appendChild(button);
-
 }
 
 createPasswordToggle($("#loginPassword"));
 createPasswordToggle($("#registerPassword"));
 
-
 /* =========================================================
-   14. LOGIN FORM CONNECTION
+   15. LOGIN FORM
    ========================================================= */
 
-/*
-  مهم:
-  تسجيل الدخول الحقيقي سيتم ربطه بملف auth.js.
-  هذا الملف لا ينشئ صلاحيات الإدارة بنفسه.
-*/
+elements.loginForm?.addEventListener(
+  "submit",
+  async event => {
+    event.preventDefault();
 
-elements.loginForm?.addEventListener("submit", async (event) => {
+    const identifier =
+      elements.loginIdentifier?.value.trim();
 
-  event.preventDefault();
+    const password =
+      elements.loginPassword?.value;
 
-  const identifier =
-    elements.loginIdentifier?.value.trim();
+    const loginType =
+      elements.loginType?.value || "student";
 
-  const password =
-    elements.loginPassword?.value;
-
-  const loginType =
-    elements.loginType?.value || "student";
-
-  if (!identifier || !password) {
-
-    setStatus(
-      elements.loginStatus,
-      "من فضلك أدخل اسم المستخدم وكلمة المرور."
-    );
-
-    return;
-
-  }
-
-  if (elements.loginSubmit) {
-
-    elements.loginSubmit.disabled = true;
-
-    elements.loginSubmit.querySelector("span").textContent =
-      "جارٍ التحقق...";
-
-  }
-
-  clearStatus(elements.loginStatus);
-
-  try {
-
-    /*
-      الدالة EICA_AUTH_LOGIN سيتم تعريفها في auth.js.
-      يتم استدعاؤها بعد ربط Firebase.
-    */
-
-    if (typeof window.EICA_AUTH_LOGIN !== "function") {
-
-      throw new Error(
-        "AUTH_NOT_READY"
+    if (!identifier || !password) {
+      setStatus(
+        elements.loginStatus,
+        "من فضلك أدخل اسم المستخدم وكلمة المرور."
       );
-
+      return;
     }
 
-    const result = await window.EICA_AUTH_LOGIN({
-      identifier,
-      password,
-      loginType
-    });
+    const submitButton = elements.loginSubmit;
+    const submitText = $("span", submitButton);
 
-    if (!result || !result.success) {
+    if (submitButton) {
+      submitButton.disabled = true;
 
-      throw new Error(
-        result?.message || "بيانات الدخول غير صحيحة."
-      );
-
+      if (submitText) {
+        submitText.textContent = "جارٍ التحقق...";
+      }
     }
 
-    closeLoginModal();
+    clearStatus(elements.loginStatus);
 
-    showToast("تم تسجيل الدخول بنجاح", "success");
+    try {
+      if (typeof window.EICA_AUTH_LOGIN !== "function") {
+        throw new Error("AUTH_NOT_READY");
+      }
 
-  } catch (error) {
+      const result = await window.EICA_AUTH_LOGIN({
+        identifier,
+        password,
+        loginType
+      });
 
-    console.error("EICA Login Error:", error);
+      if (!result || !result.success) {
+        throw new Error(
+          result?.message || "بيانات الدخول غير صحيحة."
+        );
+      }
 
-    let message = "تعذر تسجيل الدخول. تحقق من بياناتك.";
+      if (result.user) {
+        updateAccountUI(result.user);
+      }
 
-    if (error.message === "AUTH_NOT_READY") {
+      closeLoginModal();
 
-      message = "نظام تسجيل الدخول لم يتم ربطه بعد.";
+      showToast(
+        "تم تسجيل الدخول بنجاح",
+        "success"
+      );
 
-    } else if (error.code === "auth/invalid-credential") {
+    } catch (error) {
+      console.error("EICA Login Error:", error);
 
-      message = "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+      let message =
+        "تعذر تسجيل الدخول. تحقق من بياناتك.";
 
-    } else if (error.code === "auth/user-disabled") {
+      if (error.message === "AUTH_NOT_READY") {
+        message =
+          "نظام تسجيل الدخول لم يتم ربطه بعد.";
 
-      message = "هذا الحساب موقوف حالياً.";
+      } else if (error.code === "auth/invalid-credential") {
+        message =
+          "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
 
-    } else if (error.code === "auth/too-many-requests") {
+      } else if (error.code === "auth/user-disabled") {
+        message =
+          "هذا الحساب موقوف حالياً.";
 
-      message = "محاولات كثيرة. حاول مرة أخرى لاحقاً.";
+      } else if (error.code === "auth/too-many-requests") {
+        message =
+          "محاولات كثيرة. حاول مرة أخرى لاحقاً.";
 
-    } else if (
-      error.message &&
-      error.message !== "AUTH_NOT_READY"
+      } else if (error.code === "auth/network-request-failed") {
+        message =
+          "تعذر الاتصال بالإنترنت. تحقق من اتصالك.";
+
+      } else if (
+        error.message &&
+        error.message !== "AUTH_NOT_READY"
+      ) {
+        message = error.message;
+      }
+
+      setStatus(elements.loginStatus, message);
+
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+
+        if (submitText) {
+          submitText.textContent = "دخول إلى المنصة";
+        }
+      }
+    }
+  }
+);
+
+/* =========================================================
+   16. STUDENT REGISTRATION
+   ========================================================= */
+
+elements.registerForm?.addEventListener(
+  "submit",
+  async event => {
+    event.preventDefault();
+
+    const data = {
+      name: $("#registerName")?.value.trim(),
+      email: $("#registerEmail")?.value.trim(),
+      phone: $("#registerPhone")?.value.trim(),
+      password: $("#registerPassword")?.value
+    };
+
+    if (
+      !data.name ||
+      !data.email ||
+      !data.phone ||
+      !data.password
     ) {
-
-      message = error.message;
-
+      setStatus(
+        elements.registerStatus,
+        "يرجى استكمال جميع البيانات."
+      );
+      return;
     }
 
-    setStatus(
-      elements.loginStatus,
-      message
-    );
-
-  } finally {
-
-    if (elements.loginSubmit) {
-
-      elements.loginSubmit.disabled = false;
-
-      elements.loginSubmit.querySelector("span").textContent =
-        "دخول إلى المنصة";
-
+    if (data.password.length < 8) {
+      setStatus(
+        elements.registerStatus,
+        "كلمة المرور يجب ألا تقل عن 8 أحرف."
+      );
+      return;
     }
 
-  }
-
-});
-
-
-/* =========================================================
-   15. STUDENT REGISTRATION CONNECTION
-   ========================================================= */
-
-elements.registerForm?.addEventListener("submit", async (event) => {
-
-  event.preventDefault();
-
-  const data = {
-
-    name: $("#registerName")?.value.trim(),
-
-    email: $("#registerEmail")?.value.trim(),
-
-    phone: $("#registerPhone")?.value.trim(),
-
-    password: $("#registerPassword")?.value
-
-  };
-
-  if (
-    !data.name ||
-    !data.email ||
-    !data.phone ||
-    !data.password
-  ) {
-
-    setStatus(
-      elements.registerStatus,
-      "يرجى استكمال جميع البيانات."
-    );
-
-    return;
-
-  }
-
-  if (data.password.length < 8) {
-
-    setStatus(
-      elements.registerStatus,
-      "كلمة المرور يجب ألا تقل عن 8 أحرف."
-    );
-
-    return;
-
-  }
-
-  try {
-
-    if (typeof window.EICA_STUDENT_REGISTER !== "function") {
-
-      throw new Error("REGISTER_NOT_READY");
-
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      setStatus(
+        elements.registerStatus,
+        "من فضلك أدخل بريدًا إلكترونيًا صحيحًا."
+      );
+      return;
     }
 
-    const result =
-      await window.EICA_STUDENT_REGISTER(data);
+    const submitButton =
+      $('button[type="submit"]', elements.registerForm);
 
-    if (!result || !result.success) {
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
 
-      throw new Error(
-        result?.message || "تعذر إرسال طلب التسجيل."
+    clearStatus(elements.registerStatus);
+
+    try {
+      if (
+        typeof window.EICA_STUDENT_REGISTER !== "function"
+      ) {
+        throw new Error("REGISTER_NOT_READY");
+      }
+
+      const result =
+        await window.EICA_STUDENT_REGISTER(data);
+
+      if (!result || !result.success) {
+        throw new Error(
+          result?.message || "تعذر إرسال طلب التسجيل."
+        );
+      }
+
+      setStatus(
+        elements.registerStatus,
+        "تم إرسال طلب التسجيل بنجاح.",
+        "success"
       );
 
+      elements.registerForm.reset();
+
+    } catch (error) {
+      console.error("EICA Registration Error:", error);
+
+      let message =
+        "تعذر إرسال طلب التسجيل حالياً.";
+
+      if (error.message === "REGISTER_NOT_READY") {
+        message =
+          "خدمة التسجيل لم يتم ربطها بعد.";
+      } else if (error.message) {
+        message = error.message;
+      }
+
+      setStatus(elements.registerStatus, message);
+
+    } finally {
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
     }
-
-    setStatus(
-      elements.registerStatus,
-      "تم إرسال طلب التسجيل بنجاح.",
-      "success"
-    );
-
-    elements.registerForm.reset();
-
-  } catch (error) {
-
-    console.error("EICA Registration Error:", error);
-
-    const message =
-      error.message === "REGISTER_NOT_READY"
-        ? "خدمة التسجيل لم يتم ربطها بعد."
-        : error.message;
-
-    setStatus(
-      elements.registerStatus,
-      message
-    );
-
   }
-
-});
-
+);
 
 /* =========================================================
-   16. FORGOT PASSWORD
+   17. FORGOT PASSWORD
    ========================================================= */
 
-$("#forgotPassword")?.addEventListener("click", async () => {
+$("#forgotPassword")?.addEventListener(
+  "click",
+  async () => {
+    const email =
+      elements.loginIdentifier?.value.trim();
 
-  const email =
-    elements.loginIdentifier?.value.trim();
+    if (
+      !email ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      setStatus(
+        elements.loginStatus,
+        "أدخل بريدك الإلكتروني الصحيح أولاً."
+      );
+      return;
+    }
 
-  if (!email || !email.includes("@")) {
+    if (
+      typeof window.EICA_RESET_PASSWORD !== "function"
+    ) {
+      setStatus(
+        elements.loginStatus,
+        "خدمة استعادة كلمة المرور لم يتم ربطها بعد."
+      );
+      return;
+    }
 
-    setStatus(
-      elements.loginStatus,
-      "أدخل بريدك الإلكتروني أولاً لاستعادة كلمة المرور."
-    );
+    try {
+      await window.EICA_RESET_PASSWORD(email);
 
-    return;
+      setStatus(
+        elements.loginStatus,
+        "تم إرسال رابط استعادة كلمة المرور إلى بريدك.",
+        "success"
+      );
 
+    } catch (error) {
+      console.error("Password Reset Error:", error);
+
+      setStatus(
+        elements.loginStatus,
+        "تعذر إرسال رابط الاستعادة. تحقق من البريد الإلكتروني."
+      );
+    }
   }
-
-  if (typeof window.EICA_RESET_PASSWORD !== "function") {
-
-    setStatus(
-      elements.loginStatus,
-      "خدمة استعادة كلمة المرور لم يتم ربطها بعد."
-    );
-
-    return;
-
-  }
-
-  try {
-
-    await window.EICA_RESET_PASSWORD(email);
-
-    setStatus(
-      elements.loginStatus,
-      "تم إرسال رابط استعادة كلمة المرور إلى بريدك.",
-      "success"
-    );
-
-  } catch (error) {
-
-    setStatus(
-      elements.loginStatus,
-      "تعذر إرسال رابط الاستعادة. تحقق من البريد الإلكتروني."
-    );
-
-  }
-
-});
-
+);
 
 /* =========================================================
-   17. USER SESSION DISPLAY
+   18. ACCOUNT UI
    ========================================================= */
 
 function updateAccountUI(user) {
-
   EICA.currentUser = user || null;
-  EICA.isAuthenticated = !!user;
+  EICA.isAuthenticated = Boolean(user);
+
+  EICA.currentRole = user?.role || null;
 
   const name =
     user?.displayName ||
@@ -791,17 +824,22 @@ function updateAccountUI(user) {
   const role =
     user?.role || "غير مسجل الدخول";
 
-  $("#accountName") &&
-    ($("#accountName").textContent = name);
-
-  $("#accountRole") &&
-    ($("#accountRole").textContent = role);
+  const accountName = $("#accountName");
+  const accountRole = $("#accountRole");
 
   const sidebarName =
     $("#sidebarUser .sidebar-user-info strong");
 
   const sidebarDescription =
     $("#sidebarUser .sidebar-user-info small");
+
+  if (accountName) {
+    accountName.textContent = name;
+  }
+
+  if (accountRole) {
+    accountRole.textContent = role;
+  }
 
   if (sidebarName) {
     sidebarName.textContent = name;
@@ -821,186 +859,176 @@ function updateAccountUI(user) {
     !user
   );
 
-  if (user) {
-
-    $("#headerLogin")?.classList.add("hidden");
-
-  } else {
-
-    $("#headerLogin")?.classList.remove("hidden");
-
-  }
-
+  $("#headerLogin")?.classList.toggle(
+    "hidden",
+    Boolean(user)
+  );
 }
 
 window.EICA_UPDATE_ACCOUNT_UI = updateAccountUI;
 
-
 /* =========================================================
-   18. LOGOUT
+   19. LOGOUT
    ========================================================= */
 
 async function logoutUser() {
-
   try {
-
     if (typeof window.EICA_AUTH_LOGOUT !== "function") {
-
       throw new Error("LOGOUT_NOT_READY");
-
     }
 
     await window.EICA_AUTH_LOGOUT();
 
     updateAccountUI(null);
 
-    showToast("تم تسجيل الخروج", "success");
+    showToast(
+      "تم تسجيل الخروج",
+      "success"
+    );
 
   } catch (error) {
-
     console.error("Logout Error:", error);
 
     showToast(
       "تعذر تسجيل الخروج حالياً",
       "error"
     );
-
   }
-
 }
 
-$("#logoutNav")?.addEventListener("click", logoutUser);
+$("#logoutNav")?.addEventListener(
+  "click",
+  logoutUser
+);
 
-$("#accountLogout")?.addEventListener("click", logoutUser);
-
+$("#accountLogout")?.addEventListener(
+  "click",
+  logoutUser
+);
 
 /* =========================================================
-   19. TOAST NOTIFICATIONS
+   20. TOAST NOTIFICATIONS
    ========================================================= */
 
 function showToast(message, type = "info") {
-
   let container = $("#eicaToastContainer");
 
   if (!container) {
-
     container = document.createElement("div");
 
     container.id = "eicaToastContainer";
 
-    container.style.position = "fixed";
-    container.style.top = "100px";
-    container.style.left = "20px";
-    container.style.zIndex = "5000";
-
-    container.style.display = "flex";
-    container.style.flexDirection = "column";
-    container.style.gap = "10px";
+    Object.assign(container.style, {
+      position: "fixed",
+      top: "100px",
+      left: "20px",
+      zIndex: "5000",
+      display: "flex",
+      flexDirection: "column",
+      gap: "10px",
+      pointerEvents: "none"
+    });
 
     document.body.appendChild(container);
-
   }
 
   const toast = document.createElement("div");
 
-  toast.textContent = message;
+  toast.textContent = String(message);
 
-  toast.style.minWidth = "230px";
-  toast.style.maxWidth = "320px";
-  toast.style.padding = "14px 18px";
-  toast.style.borderRadius = "12px";
-  toast.style.fontSize = "11px";
-  toast.style.fontWeight = "700";
-  toast.style.color = "#fff";
-  toast.style.background =
-    type === "success"
-      ? "linear-gradient(100deg,#087d5a,#00b88a)"
-      : type === "error"
-        ? "linear-gradient(100deg,#a32c40,#dc5366)"
-        : "linear-gradient(100deg,#087fff,#00a9d6)";
-
-  toast.style.boxShadow = "0 10px 35px rgba(0,0,0,.25)";
-
-  toast.style.opacity = "0";
-  toast.style.transform = "translateY(-10px)";
-  toast.style.transition = "all .3s ease";
+  Object.assign(toast.style, {
+    minWidth: "230px",
+    maxWidth: "320px",
+    padding: "14px 18px",
+    borderRadius: "12px",
+    fontSize: "11px",
+    fontWeight: "700",
+    color: "#fff",
+    background:
+      type === "success"
+        ? "linear-gradient(100deg,#087d5a,#00b88a)"
+        : type === "error"
+          ? "linear-gradient(100deg,#a32c40,#dc5366)"
+          : "linear-gradient(100deg,#087fff,#00a9d6)",
+    boxShadow: "0 10px 35px rgba(0,0,0,.25)",
+    opacity: "0",
+    transform: "translateY(-10px)",
+    transition: "all .3s ease",
+    pointerEvents: "auto"
+  });
 
   container.appendChild(toast);
 
   requestAnimationFrame(() => {
-
     toast.style.opacity = "1";
     toast.style.transform = "translateY(0)";
-
   });
 
   setTimeout(() => {
-
     toast.style.opacity = "0";
     toast.style.transform = "translateY(-10px)";
 
-    setTimeout(() => toast.remove(), 350);
-
+    setTimeout(() => {
+      toast.remove();
+    }, 350);
   }, 3500);
-
 }
 
 window.EICA_SHOW_TOAST = showToast;
 
-
 /* =========================================================
-   20. BACK TO TOP
+   21. BACK TO TOP
    ========================================================= */
 
-window.addEventListener("scroll", () => {
+let scrollTicking = false;
 
-  const shouldShow = window.scrollY > 400;
+window.addEventListener(
+  "scroll",
+  () => {
+    if (scrollTicking) return;
 
-  elements.backToTop?.classList.toggle(
-    "show",
-    shouldShow
-  );
+    scrollTicking = true;
 
-});
+    requestAnimationFrame(() => {
+      elements.backToTop?.classList.toggle(
+        "show",
+        window.scrollY > 400
+      );
+
+      scrollTicking = false;
+    });
+  },
+  { passive: true }
+);
 
 elements.backToTop?.addEventListener("click", () => {
-
   window.scrollTo({
     top: 0,
     behavior: "smooth"
   });
-
 });
 
-
 /* =========================================================
-   21. SCROLL ACTIVE NAVIGATION
+   22. ACTIVE NAVIGATION
    ========================================================= */
 
 const sections = $$("main section[id]");
 
 if ("IntersectionObserver" in window) {
-
   const sectionObserver = new IntersectionObserver(
-    (entries) => {
-
+    entries => {
       entries.forEach(entry => {
-
         if (!entry.isIntersecting) return;
 
         const id = entry.target.id;
 
         $$(".side-navigation a").forEach(link => {
-
           link.classList.toggle(
             "active",
             link.getAttribute("href") === `#${id}`
           );
-
         });
-
       });
-
     },
     {
       threshold: 0.35
@@ -1008,16 +1036,12 @@ if ("IntersectionObserver" in window) {
   );
 
   sections.forEach(section => {
-
     sectionObserver.observe(section);
-
   });
-
 }
 
-
 /* =========================================================
-   22. SCROLL REVEAL ANIMATIONS
+   23. SCROLL REVEAL
    ========================================================= */
 
 const revealElements = $$(
@@ -1025,21 +1049,16 @@ const revealElements = $$(
 );
 
 if ("IntersectionObserver" in window) {
-
   const revealObserver = new IntersectionObserver(
     (entries, observer) => {
-
       entries.forEach(entry => {
-
         if (!entry.isIntersecting) return;
 
         entry.target.style.opacity = "1";
         entry.target.style.transform = "translateY(0)";
 
         observer.unobserve(entry.target);
-
       });
-
     },
     {
       threshold: 0.12
@@ -1047,216 +1066,255 @@ if ("IntersectionObserver" in window) {
   );
 
   revealElements.forEach(element => {
-
     element.style.opacity = "0";
     element.style.transform = "translateY(25px)";
     element.style.transition =
       "opacity .7s ease, transform .7s ease";
 
     revealObserver.observe(element);
-
   });
 
+} else {
+  revealElements.forEach(element => {
+    element.style.opacity = "1";
+    element.style.transform = "none";
+  });
 }
 
-
 /* =========================================================
-   23. PARTICLE BACKGROUND
+   24. PARTICLE BACKGROUND
    ========================================================= */
 
 const particleCanvas = $("#particles");
 
 if (particleCanvas) {
-
   const ctx = particleCanvas.getContext("2d");
 
-  let particles = [];
+  if (ctx) {
+    let particles = [];
 
-  let canvasWidth = 0;
-  let canvasHeight = 0;
+    let canvasWidth = 0;
+    let canvasHeight = 0;
 
-  function resizeCanvas() {
+    let animationFrame = null;
 
-    const pixelRatio = Math.min(
-      window.devicePixelRatio || 1,
-      2
-    );
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
 
-    canvasWidth = window.innerWidth;
-    canvasHeight = window.innerHeight;
-
-    particleCanvas.width =
-      canvasWidth * pixelRatio;
-
-    particleCanvas.height =
-      canvasHeight * pixelRatio;
-
-    particleCanvas.style.width =
-      `${canvasWidth}px`;
-
-    particleCanvas.style.height =
-      `${canvasHeight}px`;
-
-    ctx.setTransform(
-      pixelRatio,
-      0,
-      0,
-      pixelRatio,
-      0,
-      0
-    );
-
-    createParticles();
-
-  }
-
-  function createParticles() {
-
-    const count = Math.min(
-      Math.floor(canvasWidth / 13),
-      100
-    );
-
-    particles = [];
-
-    for (let i = 0; i < count; i++) {
-
-      particles.push({
-
-        x: Math.random() * canvasWidth,
-
-        y: Math.random() * canvasHeight,
-
-        size: Math.random() * 1.7 + 0.4,
-
-        speedX: (Math.random() - 0.5) * 0.3,
-
-        speedY: (Math.random() - 0.5) * 0.3,
-
-        opacity: Math.random() * 0.55 + 0.1
-
-      });
-
-    }
-
-  }
-
-  function drawParticles() {
-
-    ctx.clearRect(
-      0,
-      0,
-      canvasWidth,
-      canvasHeight
-    );
-
-    particles.forEach(particle => {
-
-      particle.x += particle.speedX;
-      particle.y += particle.speedY;
-
-      if (particle.x < 0 || particle.x > canvasWidth) {
-        particle.speedX *= -1;
-      }
-
-      if (particle.y < 0 || particle.y > canvasHeight) {
-        particle.speedY *= -1;
-      }
-
-      ctx.beginPath();
-
-      ctx.arc(
-        particle.x,
-        particle.y,
-        particle.size,
-        0,
-        Math.PI * 2
+    function resizeCanvas() {
+      const pixelRatio = Math.min(
+        window.devicePixelRatio || 1,
+        2
       );
 
-      ctx.fillStyle =
-        `rgba(50,190,255,${particle.opacity})`;
+      canvasWidth = window.innerWidth;
+      canvasHeight = window.innerHeight;
 
-      ctx.fill();
+      particleCanvas.width =
+        Math.round(canvasWidth * pixelRatio);
 
-    });
+      particleCanvas.height =
+        Math.round(canvasHeight * pixelRatio);
 
-    for (let i = 0; i < particles.length; i++) {
+      particleCanvas.style.width =
+        `${canvasWidth}px`;
 
-      for (let j = i + 1; j < particles.length; j++) {
+      particleCanvas.style.height =
+        `${canvasHeight}px`;
 
-        const a = particles[i];
-        const b = particles[j];
+      ctx.setTransform(
+        pixelRatio,
+        0,
+        0,
+        pixelRatio,
+        0,
+        0
+      );
 
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
+      createParticles();
 
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < 110) {
-
-          ctx.beginPath();
-
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-
-          ctx.strokeStyle =
-            `rgba(30,160,255,${0.08 * (1 - distance / 110)})`;
-
-          ctx.lineWidth = 0.7;
-
-          ctx.stroke();
-
-        }
-
+      if (reducedMotion) {
+        drawStaticParticles();
       }
-
     }
 
-    requestAnimationFrame(drawParticles);
+    function createParticles() {
+      const count = Math.min(
+        Math.floor(canvasWidth / 15),
+        85
+      );
 
+      particles = [];
+
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x: Math.random() * canvasWidth,
+          y: Math.random() * canvasHeight,
+          size: Math.random() * 1.5 + 0.4,
+          speedX: (Math.random() - 0.5) * 0.3,
+          speedY: (Math.random() - 0.5) * 0.3,
+          opacity: Math.random() * 0.45 + 0.1
+        });
+      }
+    }
+
+    function drawParticles() {
+      ctx.clearRect(
+        0,
+        0,
+        canvasWidth,
+        canvasHeight
+      );
+
+      particles.forEach(particle => {
+        particle.x += particle.speedX;
+        particle.y += particle.speedY;
+
+        if (
+          particle.x < 0 ||
+          particle.x > canvasWidth
+        ) {
+          particle.speedX *= -1;
+        }
+
+        if (
+          particle.y < 0 ||
+          particle.y > canvasHeight
+        ) {
+          particle.speedY *= -1;
+        }
+
+        ctx.beginPath();
+
+        ctx.arc(
+          particle.x,
+          particle.y,
+          particle.size,
+          0,
+          Math.PI * 2
+        );
+
+        ctx.fillStyle =
+          `rgba(50,190,255,${particle.opacity})`;
+
+        ctx.fill();
+      });
+
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const a = particles[i];
+          const b = particles[j];
+
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+
+          const distance = Math.hypot(dx, dy);
+
+          if (distance < 110) {
+            ctx.beginPath();
+
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+
+            ctx.strokeStyle =
+              `rgba(30,160,255,${0.07 * (1 - distance / 110)})`;
+
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+        }
+      }
+
+      if (!reducedMotion) {
+        animationFrame =
+          requestAnimationFrame(drawParticles);
+      }
+    }
+
+    function drawStaticParticles() {
+      ctx.clearRect(
+        0,
+        0,
+        canvasWidth,
+        canvasHeight
+      );
+
+      particles.forEach(particle => {
+        ctx.beginPath();
+
+        ctx.arc(
+          particle.x,
+          particle.y,
+          particle.size,
+          0,
+          Math.PI * 2
+        );
+
+        ctx.fillStyle =
+          `rgba(50,190,255,${particle.opacity})`;
+
+        ctx.fill();
+      });
+    }
+
+    resizeCanvas();
+
+    if (!reducedMotion) {
+      drawParticles();
+    }
+
+    window.addEventListener(
+      "resize",
+      resizeCanvas,
+      { passive: true }
+    );
+
+    // إيقاف الحركة عندما تكون الصفحة في الخلفية
+    document.addEventListener(
+      "visibilitychange",
+      () => {
+        if (document.hidden && animationFrame) {
+          cancelAnimationFrame(animationFrame);
+          animationFrame = null;
+        } else if (
+          !document.hidden &&
+          !reducedMotion &&
+          !animationFrame
+        ) {
+          drawParticles();
+        }
+      }
+    );
   }
-
-  resizeCanvas();
-
-  window.addEventListener("resize", resizeCanvas);
-
-  drawParticles();
-
 }
 
-
 /* =========================================================
-   24. SETTINGS HELP
+   25. SETTINGS HELP
    ========================================================= */
 
 $("#settingsHelp")?.addEventListener("click", () => {
-
   hideElement(elements.settingsMenu);
 
   showToast(
     "للمساعدة والدعم تواصل مع إدارة الأكاديمية.",
     "info"
   );
-
 });
 
-
 /* =========================================================
-   25. LANGUAGE PLACEHOLDER
+   26. LANGUAGE PLACEHOLDER
    ========================================================= */
 
 $("#settingsLanguage")?.addEventListener("click", () => {
-
   showToast(
     "الواجهة الحالية باللغة العربية.",
     "info"
   );
-
 });
 
-
 /* =========================================================
-   26. INITIAL APPLICATION STATE
+   27. INITIAL APPLICATION STATE
    ========================================================= */
 
 updateAccountUI(null);
@@ -1271,7 +1329,6 @@ console.log(
   "color:#00dfff;font-size:11px;font-weight:bold;"
 );
 
-
 /* =========================================================
-   END OF MAIN.JS
+   END OF EICA MAIN JAVASCRIPT
    ========================================================= */
