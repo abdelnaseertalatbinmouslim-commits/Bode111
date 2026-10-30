@@ -1,0 +1,525 @@
+here/**
+ * EICA Academy - Firebase Cloud Functions
+ * Firebase Functions v2
+ * Node.js 20+
+ */
+
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { initializeApp } = require("firebase-admin/app");
+const { getAuth } = require("firebase-admin/auth");
+const { getDatabase } = require("firebase-admin/database");
+
+initializeApp();
+
+const auth = getAuth();
+const database = getDatabase();
+
+const REGION = "us-central1";
+
+/* =========================================
+   Helpers
+========================================= */
+
+function requireSuperAdmin(request) {
+  if (!request.auth) {
+    throw new HttpsError(
+      "unauthenticated",
+      "يجب تسجيل الدخول أولاً."
+    );
+  }
+
+  if (request.auth.token.super_admin !== true) {
+    throw new HttpsError(
+      "permission-denied",
+      "ليس لديك صلاحية تنفيذ هذه العملية."
+    );
+  }
+}
+
+function cleanText(value, maxLength = 100) {
+  return String(value || "").trim().slice(0, maxLength);
+}
+
+function validateEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validatePassword(password) {
+  return typeof password === "string" && password.length >= 8;
+}
+
+function normalizeUsername(username) {
+  return String(username || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]/g, "");
+}
+
+function makeSafeError(error) {
+  if (error instanceof HttpsError) {
+    return error;
+  }
+
+  console.error(error);
+
+  return new HttpsError(
+    "internal",
+    "حدث خطأ أثناء تنفيذ العملية. حاول مرة أخرى."
+  );
+}
+
+/* =========================================
+   1. Create Student Account
+========================================= */
+
+exports.adminCreateStudent = onCall(
+  { region: REGION },
+  async (request) => {
+    try {
+      requireSuperAdmin(request);
+
+      const data = request.data || {};
+
+      const name = cleanText(data.name || data.fullName, 120);
+      const email = cleanText(data.email, 160).toLowerCase();
+      const password = data.password;
+      const phone = cleanText(data.phone, 30);
+      const username = normalizeUsername(data.username);
+
+      if (!name || !email || !password) {
+        throw new HttpsError(
+          "invalid-argument",
+          "الاسم والبريد الإلكتروني وكلمة المرور مطلوبة."
+        );
+      }
+
+      if (!validateEmail(email)) {
+        throw new HttpsError(
+          "invalid-argument",
+          "البريد الإلكتروني غير صحيح."
+        );
+      }
+
+      if (!validatePassword(password)) {
+        throw new HttpsError(
+          "invalid-argument",
+          "كلمة المرور يجب ألا تقل عن 8 أحرف."
+        );
+      }
+
+      if (username && username.length < 3) {
+        throw new HttpsError(
+          "invalid-argument",
+          "اسم المستخدم يجب أن يكون 3 أحرف على الأقل."
+        );
+      }
+
+      const usernameRef = username
+        ? database.ref(`platform/usernames/${username}`)
+        : null;
+
+      if (usernameRef) {
+        const usernameSnapshot = await usernameRef.get();
+
+        if (usernameSnapshot.exists()) {
+          throw new HttpsError(
+            "already-exists",
+            "اسم المستخدم مستخدم بالفعل."
+          );
+        }
+      }
+
+      let userRecord;
+
+      try {
+        userRecord = await auth.createUser({
+          email,
+          password,
+          displayName: name,
+          disabled: false
+        });
+      } catch (error) {
+        if (error.code === "auth/email-already-exists") {
+          throw new HttpsError(
+            "already-exists",
+            "هذا البريد الإلكتروني مسجل بالفعل."
+          );
+        }
+
+        throw error;
+      }
+
+      const uid = userRecord.uid;
+      const now = Date.now();
+
+      const updates = {};
+
+      updates[`platform/users/${uid}`] = {
+        uid,
+        name,
+        fullName: name,
+        email,
+        phone,
+        username: username || null,
+        role: "student",
+        status: "active",
+        createdAt: now,
+        updatedAt: now
+      };
+
+      if (username) {
+        updates[`platform/usernames/${username}`] = {
+          uid,
+          email
+        };
+      }
+
+      updates[`platform/activityLogs/${request.auth.uid}/${database.ref().push().key}`] = {
+        action: "create_student",
+        details: `تم إنشاء حساب طالب: ${name}`,
+        targetUid: uid,
+        createdAt: now
+      };
+
+      try {
+        await database.ref().update(updates);
+      } catch (error) {
+        // لا نترك حساب Auth يتيمًا إذا فشل حفظ بياناته.
+        await auth.deleteUser(uid).catch(console.error);
+        throw error;
+      }
+
+      return {
+        success: true,
+        uid,
+        message: "تم إنشاء حساب الطالب بنجاح."
+      };
+
+    } catch (error) {
+      throw makeSafeError(error);
+    }
+  }
+);
+
+/* =========================================
+   2. Create Branch Admin Account
+   ملاحظة: القواعد الحالية لا تمنح مدير الفرع
+   صلاحيات الكتابة؛ يلزم تحديثها قبل تفعيل دوره.
+========================================= */
+
+exports.adminCreateBranchAdmin = onCall(
+  { region: REGION },
+  async (request) => {
+    try {
+      requireSuperAdmin(request);
+
+      const data = request.data || {};
+
+      const name = cleanText(data.name || data.fullName, 120);
+      const email = cleanText(data.email, 160).toLowerCase();
+      const password = data.password;
+      const phone = cleanText(data.phone, 30);
+      const branchName = cleanText(data.branchName, 100);
+
+      if (!name || !email || !password) {
+        throw new HttpsError(
+          "invalid-argument",
+          "الاسم والبريد الإلكتروني وكلمة المرور مطلوبة."
+        );
+      }
+
+      if (!validateEmail(email) || !validatePassword(password)) {
+        throw new HttpsError(
+          "invalid-argument",
+          "راجع البريد الإلكتروني وكلمة المرور."
+        );
+      }
+
+      let userRecord;
+
+      try {
+        userRecord = await auth.createUser({
+          email,
+          password,
+          displayName: name,
+          disabled: false
+        });
+      } catch (error) {
+        if (error.code === "auth/email-already-exists") {
+          throw new HttpsError(
+            "already-exists",
+            "هذا البريد الإلكتروني مسجل بالفعل."
+          );
+        }
+
+        throw error;
+      }
+
+      const uid = userRecord.uid;
+      const now = Date.now();
+
+      try {
+        await auth.setCustomUserClaims(uid, {
+          role: "branch_admin",
+          super_admin: false
+        });
+
+        const updates = {};
+
+        updates[`platform/users/${uid}`] = {
+          uid,
+          name,
+          fullName: name,
+          email,
+          phone,
+          role: "branch_admin",
+          status: "active",
+          branchName,
+          createdAt: now,
+          updatedAt: now
+        };
+
+        updates[`platform/admins/${uid}`] = {
+          name,
+          email,
+          role: "branch_admin",
+          branchName,
+          active: true,
+          permissions: {},
+          createdAt: now
+        };
+
+        updates[`platform/activityLogs/${request.auth.uid}/${database.ref().push().key}`] = {
+          action: "create_branch_admin",
+          details: `تم إنشاء حساب مدير فرع: ${name}`,
+          targetUid: uid,
+          createdAt: now
+        };
+
+        await database.ref().update(updates);
+
+      } catch (error) {
+        await auth.deleteUser(uid).catch(console.error);
+        throw error;
+      }
+
+      return {
+        success: true,
+        uid,
+        message: "تم إنشاء الحساب. صلاحيات مدير الفرع تحتاج تحديث قواعد الأمان."
+      };
+
+    } catch (error) {
+      throw makeSafeError(error);
+    }
+  }
+);
+
+/* =========================================
+   3. Resolve Login Identifier
+   يسمح بتحويل اسم المستخدم إلى البريد
+   الإلكتروني حتى يعمل تسجيل الدخول بالاسم.
+========================================= */
+
+exports.resolveLoginIdentifier = onCall(
+  { region: REGION },
+  async (request) => {
+    try {
+      const identifier = cleanText(
+        request.data?.identifier,
+        160
+      ).toLowerCase();
+
+      if (!identifier) {
+        throw new HttpsError(
+          "invalid-argument",
+          "أدخل البريد الإلكتروني أو اسم المستخدم."
+        );
+      }
+
+      // إذا كان المدخل بريدًا إلكترونيًا.
+      if (validateEmail(identifier)) {
+        return {
+          success: true,
+          email: identifier
+        };
+      }
+
+      const username = normalizeUsername(identifier);
+
+      if (!username || username.length < 3) {
+        throw new HttpsError(
+          "not-found",
+          "بيانات تسجيل الدخول غير صحيحة."
+        );
+      }
+
+      const snapshot = await database
+        .ref(`platform/usernames/${username}`)
+        .get();
+
+      if (!snapshot.exists()) {
+        throw new HttpsError(
+          "not-found",
+          "بيانات تسجيل الدخول غير صحيحة."
+        );
+      }
+
+      const userData = snapshot.val();
+
+      if (!userData || !validateEmail(userData.email)) {
+        throw new HttpsError(
+          "not-found",
+          "بيانات تسجيل الدخول غير صحيحة."
+        );
+      }
+
+      return {
+        success: true,
+        email: userData.email
+      };
+
+    } catch (error) {
+      throw makeSafeError(error);
+    }
+  }
+);
+
+/* =========================================
+   4. Update Student Status
+========================================= */
+
+exports.adminUpdateStudentStatus = onCall(
+  { region: REGION },
+  async (request) => {
+    try {
+      requireSuperAdmin(request);
+
+      const uid = cleanText(request.data?.uid, 128);
+      const status = cleanText(request.data?.status, 20);
+
+      if (!uid || !["active", "blocked", "pending"].includes(status)) {
+        throw new HttpsError(
+          "invalid-argument",
+          "بيانات الحالة غير صحيحة."
+        );
+      }
+
+      if (uid === request.auth.uid) {
+        throw new HttpsError(
+          "failed-precondition",
+          "لا يمكنك تغيير حالة حسابك من هنا."
+        );
+      }
+
+      const userRef = database.ref(`platform/users/${uid}`);
+      const snapshot = await userRef.get();
+
+      if (!snapshot.exists()) {
+        throw new HttpsError(
+          "not-found",
+          "الطالب غير موجود."
+        );
+      }
+
+      await userRef.update({
+        status,
+        updatedAt: Date.now()
+      });
+
+      await auth.updateUser(uid, {
+        disabled: status === "blocked"
+      });
+
+      const logKey = database.ref().push().key;
+
+      await database
+        .ref(`platform/activityLogs/${request.auth.uid}/${logKey}`)
+        .set({
+          action: "update_student_status",
+          details: `تغيير حالة الطالب إلى ${status}`,
+          targetUid: uid,
+          createdAt: Date.now()
+        });
+
+      return {
+        success: true,
+        message: "تم تحديث حالة الطالب."
+      };
+
+    } catch (error) {
+      throw makeSafeError(error);
+    }
+  }
+);
+
+/* =========================================
+   5. Delete Student Account
+   يحذف حساب Auth وبيانات الطالب الأساسية.
+   لا يحذف النتائج أو الشهادات أو السجلات تلقائيًا.
+========================================= */
+
+exports.adminDeleteStudent = onCall(
+  { region: REGION },
+  async (request) => {
+    try {
+      requireSuperAdmin(request);
+
+      const uid = cleanText(request.data?.uid, 128);
+
+      if (!uid || uid === request.auth.uid) {
+        throw new HttpsError(
+          "invalid-argument",
+          "معرّف الطالب غير صالح."
+        );
+      }
+
+      const userRef = database.ref(`platform/users/${uid}`);
+      const snapshot = await userRef.get();
+
+      if (!snapshot.exists()) {
+        throw new HttpsError(
+          "not-found",
+          "الطالب غير موجود."
+        );
+      }
+
+      const student = snapshot.val();
+
+      if (student.role !== "student") {
+        throw new HttpsError(
+          "failed-precondition",
+          "هذه العملية مخصصة لحسابات الطلاب فقط."
+        );
+      }
+
+      await auth.deleteUser(uid);
+
+      const updates = {};
+
+      updates[`platform/users/${uid}`] = null;
+      updates[`platform/enrollments/${uid}`] = null;
+
+      if (student.username) {
+        updates[`platform/usernames/${normalizeUsername(student.username)}`] = null;
+      }
+
+      updates[`platform/activityLogs/${request.auth.uid}/${database.ref().push().key}`] = {
+        action: "delete_student",
+        details: `تم حذف حساب الطالب: ${student.name || student.email}`,
+        targetUid: uid,
+        createdAt: Date.now()
+      };
+
+      await database.ref().update(updates);
+
+      return {
+        success: true,
+        message: "تم حذف حساب الطالب وبياناته الأساسية."
+      };
+
+    } catch (error) {
+      throw makeSafeError(error);
+    }
+  }
+);
