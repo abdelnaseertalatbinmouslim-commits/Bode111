@@ -1,0 +1,106 @@
+{
+"rules": {
+"platform": {
+"users": {
+"$uid": {
+".read": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)",
+".write": "auth != null && auth.token.super_admin === true",
+"profile": {
+".write": "auth != null && auth.uid === $uid"
+},
+"lessonProgress": {
+".read": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)",
+".write": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)"
+}
+}
+},
+"courses": {
+"$courseId": {
+".read": "auth != null && (auth.token.super_admin === true || data.child('published').val() === true)",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"lessons": {
+"$courseId": {
+".read": "auth != null && (auth.token.super_admin === true || root.child('platform').child('enrollments').child(auth.uid).child($courseId).exists())",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"enrollments": {
+"$uid": {
+".read": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"exams": {
+".read": "auth != null && auth.token.super_admin === true",
+".write": "auth != null && auth.token.super_admin === true"
+},
+"results": {
+"$uid": {
+".read": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"certificates": {
+"$uid": {
+".read": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"notifications": {
+"$uid": {
+".read": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)",
+".write": "auth != null && auth.token.super_admin === true"
+},
+"global": {
+".read": "auth != null",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"activityLogs": {
+"$uid": {
+".read": "auth != null && (auth.uid === $uid || auth.token.super_admin === true)",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"admins": {
+"$uid": {
+".read": "auth != null && auth.token.super_admin === true",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+"settings": {
+".read": "auth != null",
+".write": "auth != null && auth.token.super_admin === true"
+}
+},
+
+"stats": {
+  ".read": true,
+  ".write": "auth != null && auth.token.super_admin === true"
+},
+
+"students": {
+  ".read": "auth != null && auth.token.super_admin === true",
+  ".write": "auth != null && auth.token.super_admin === true"
+},
+"quizzes": {
+  ".read": "auth != null && auth.token.super_admin === true",
+  ".write": "auth != null && auth.token.super_admin === true"
+},
+"quiz_results": {
+  ".read": "auth != null && auth.token.super_admin === true",
+  ".write": "auth != null && auth.token.super_admin === true"
+},
+"content_views": {
+  ".read": "auth != null && auth.token.super_admin === true",
+  ".write": "auth != null && auth.token.super_admin === true"
+},
+"notifications": {
+  ".read": "auth != null",
+  ".write": "auth != null && auth.token.super_admin === true"
+}
+
+}
+}
