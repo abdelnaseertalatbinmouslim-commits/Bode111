@@ -1,0 +1,853 @@
+here<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>EICA | Egypt International Computer Academy</title>
+
+  <meta name="description"
+    content="الأكاديمية المصرية الدولية للحاسب الآلي - EICA. بوابتك إلى مستقبل التكنولوجيا والبرمجة وعلوم الحاسب.">
+
+  <meta name="theme-color" content="#071426">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Orbitron:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <script type="module" src="js/main.js"></script>
+</head>
+
+<body>
+
+  <!-- خلفية المؤثرات -->
+  <div class="background-effects">
+    <div class="grid-overlay"></div>
+    <div class="glow glow-one"></div>
+    <div class="glow glow-two"></div>
+    <div class="glow glow-three"></div>
+    <canvas id="particles"></canvas>
+  </div>
+
+  <!-- شاشة التحميل -->
+  <div class="loading-screen" id="loadingScreen">
+    <div class="loader-content">
+
+      <div class="eica-logo loader-logo">
+        <span class="logo-symbol">E</span>
+        <span class="logo-light"></span>
+      </div>
+
+      <h1>EICA</h1>
+      <p>THE FUTURE OF TECHNOLOGY</p>
+
+      <div class="loading-line">
+        <span></span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- القائمة الجانبية -->
+  <aside class="sidebar" id="sidebar">
+
+    <div class="sidebar-header">
+
+      <div class="brand-mini">
+        <div class="eica-logo small-logo">
+          <span class="logo-symbol">E</span>
+        </div>
+
+        <div>
+          <h2>EICA</h2>
+          <span>ACADEMY</span>
+        </div>
+      </div>
+
+      <button class="close-sidebar" id="closeSidebar" aria-label="إغلاق القائمة">
+        ×
+      </button>
+
+    </div>
+
+    <div class="sidebar-user" id="sidebarUser">
+
+      <div class="user-avatar">
+        <span>G</span>
+      </div>
+
+      <div class="sidebar-user-info">
+        <strong>زائر الأكاديمية</strong>
+        <small>مرحباً بك في EICA</small>
+      </div>
+
+    </div>
+
+    <nav class="side-navigation">
+
+      <span class="nav-label">القائمة الرئيسية</span>
+
+      <a href="#home" class="nav-link active">
+        <span class="nav-icon">⌂</span>
+        <span>الرئيسية</span>
+      </a>
+
+      <a href="#about" class="nav-link">
+        <span class="nav-icon">◈</span>
+        <span>عن الأكاديمية</span>
+      </a>
+
+      <a href="#vision" class="nav-link">
+        <span class="nav-icon">◎</span>
+        <span>رؤيتنا ورسالتنا</span>
+      </a>
+
+      <a href="#features" class="nav-link">
+        <span class="nav-icon">✧</span>
+        <span>مميزات الأكاديمية</span>
+      </a>
+
+      <span class="nav-label">الحسابات</span>
+
+      <button class="nav-link nav-button" id="studentLoginNav">
+        <span class="nav-icon">♙</span>
+        <span>دخول الطلاب</span>
+      </button>
+
+      <button class="nav-link nav-button" id="adminLoginNav">
+        <span class="nav-icon">♜</span>
+        <span>دخول الإدارة</span>
+      </button>
+
+      <button class="nav-link nav-button hidden" id="logoutNav">
+        <span class="nav-icon">⇥</span>
+        <span>تسجيل الخروج</span>
+      </button>
+
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-status">
+        <span class="status-dot"></span>
+        <span>بوابة الأكاديمية</span>
+      </div>
+
+      <p>© 2026 EICA Academy</p>
+    </div>
+
+  </aside>
+
+  <!-- طبقة إغلاق القائمة -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- الهيدر -->
+  <header class="main-header">
+
+    <div class="header-right">
+
+      <button class="icon-button" id="menuToggle" aria-label="فتح القائمة">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <a href="#home" class="header-brand">
+
+        <div class="eica-logo header-logo">
+          <span class="logo-symbol">E</span>
+        </div>
+
+        <div class="header-brand-text">
+          <strong>EICA</strong>
+          <small>INTERNATIONAL ACADEMY</small>
+        </div>
+
+      </a>
+
+    </div>
+
+    <nav class="header-navigation">
+      <a href="#home">الرئيسية</a>
+      <a href="#about">عن الأكاديمية</a>
+      <a href="#vision">رؤيتنا</a>
+      <a href="#features">المميزات</a>
+    </nav>
+
+    <div class="header-actions">
+
+      <button class="icon-button settings-button"
+        id="settingsToggle"
+        aria-label="الإعدادات">
+        ⚙
+      </button>
+
+      <button class="icon-button account-button"
+        id="accountToggle"
+        aria-label="الحساب">
+        ♙
+      </button>
+
+      <button class="theme-toggle"
+        id="themeToggle"
+        aria-label="تغيير المظهر">
+        <span id="themeIcon">☾</span>
+      </button>
+
+      <button class="header-login-button" id="headerLogin">
+        تسجيل الدخول
+        <span>↗</span>
+      </button>
+
+    </div>
+
+  </header>
+
+  <!-- قائمة الإعدادات -->
+  <div class="settings-menu" id="settingsMenu">
+
+    <div class="settings-menu-title">
+      <strong>إعدادات المنصة</strong>
+      <span>⚙</span>
+    </div>
+
+    <button id="settingsTheme">
+      <span>☾</span>
+      تغيير المظهر
+    </button>
+
+    <button id="settingsLanguage">
+      <span>文</span>
+      اللغة العربية
+    </button>
+
+    <button id="settingsHelp">
+      <span>?</span>
+      المساعدة والدعم
+    </button>
+
+  </div>
+
+  <!-- القائمة الخاصة بالحساب -->
+  <div class="account-menu" id="accountMenu">
+
+    <div class="account-menu-top">
+      <div class="user-avatar">G</div>
+
+      <div>
+        <strong id="accountName">زائر الأكاديمية</strong>
+        <small id="accountRole">غير مسجل الدخول</small>
+      </div>
+    </div>
+
+    <button id="accountStudentLogin">دخول الطلاب</button>
+    <button id="accountAdminLogin">دخول الإدارة</button>
+    <button id="accountLogout" class="hidden">تسجيل الخروج</button>
+
+  </div>
+
+  <!-- المحتوى الرئيسي -->
+  <main>
+
+    <!-- HERO -->
+    <section class="hero-section" id="home">
+
+      <div class="hero-content">
+
+        <div class="hero-badge">
+          <span class="badge-dot"></span>
+          <span>WELCOME TO EICA DIGITAL WORLD</span>
+        </div>
+
+        <h1>
+          مستقبل التكنولوجيا
+          <br>
+          <span class="gradient-text">يبدأ من هنا</span>
+        </h1>
+
+        <p class="hero-description">
+          مرحباً بك في الأكاديمية المصرية الدولية للحاسب الآلي.
+          مساحة تعليمية وتقنية تهدف إلى صناعة جيل قادر على الابتكار،
+          التطوير، ومواكبة المستقبل الرقمي.
+        </p>
+
+        <div class="hero-buttons">
+
+          <button class="primary-button" id="heroStudentLogin">
+            دخول الطلاب
+            <span>←</span>
+          </button>
+
+          <a href="#about" class="secondary-button">
+            اكتشف الأكاديمية
+            <span>⌄</span>
+          </a>
+
+        </div>
+
+        <div class="hero-trust">
+          <span class="trust-line"></span>
+          <span>INNOVATION • KNOWLEDGE • FUTURE</span>
+        </div>
+
+      </div>
+
+      <!-- الجانب البصري -->
+      <div class="hero-visual">
+
+        <div class="visual-ring ring-one"></div>
+        <div class="visual-ring ring-two"></div>
+        <div class="visual-ring ring-three"></div>
+
+        <div class="visual-core">
+
+          <div class="core-top">
+            <span class="core-dot"></span>
+            <span>EICA SYSTEM</span>
+          </div>
+
+          <div class="core-logo">
+            <span>E</span>
+          </div>
+
+          <h2>EICA</h2>
+          <p>ACADEMY</p>
+
+          <div class="core-bottom">
+            <span>EST. 2026</span>
+            <span>● ONLINE</span>
+          </div>
+
+        </div>
+
+        <div class="floating-card floating-card-one">
+          <span class="floating-icon">⌘</span>
+          <div>
+            <strong>TECHNOLOGY</strong>
+            <small>Build The Future</small>
+          </div>
+        </div>
+
+        <div class="floating-card floating-card-two">
+          <span class="floating-icon">◇</span>
+          <div>
+            <strong>INNOVATION</strong>
+            <small>Think Beyond Limits</small>
+          </div>
+        </div>
+
+        <div class="floating-card floating-card-three">
+          <span class="floating-icon">⌬</span>
+          <div>
+            <strong>KNOWLEDGE</strong>
+            <small>Learn & Grow</small>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="hero-scroll">
+        <span></span>
+        <small>SCROLL TO EXPLORE</small>
+      </div>
+
+    </section>
+
+    <!-- شريط الهوية -->
+    <section class="identity-strip">
+
+      <div class="identity-item">
+        <span>01</span>
+        <strong>EDUCATION</strong>
+      </div>
+
+      <div class="identity-item">
+        <span>02</span>
+        <strong>TECHNOLOGY</strong>
+      </div>
+
+      <div class="identity-item">
+        <span>03</span>
+        <strong>DEVELOPMENT</strong>
+      </div>
+
+      <div class="identity-item">
+        <span>04</span>
+        <strong>INNOVATION</strong>
+      </div>
+
+    </section>
+
+    <!-- عن الأكاديمية -->
+    <section class="content-section about-section" id="about">
+
+      <div class="section-heading">
+
+        <span class="section-kicker">WHO WE ARE</span>
+
+        <h2>
+          تعرف على
+          <span class="gradient-text">EICA</span>
+        </h2>
+
+        <p>
+          أكثر من مجرد أكاديمية، إنها بوابة نحو عالم المعرفة والتكنولوجيا.
+        </p>
+
+      </div>
+
+      <div class="about-layout">
+
+        <div class="about-card main-about-card">
+
+          <div class="about-card-icon">⌘</div>
+
+          <span class="card-number">01 / ABOUT EICA</span>
+
+          <h3>من نحن؟</h3>
+
+          <p>
+            الأكاديمية المصرية الدولية للحاسب الآلي EICA هي منصة
+            تعليمية رقمية تهدف إلى توفير بيئة منظمة لإدارة العملية
+            التعليمية، ومتابعة الطلاب، وتقديم المحتوى التعليمي
+            والخدمات التقنية من خلال نظام إلكتروني متكامل.
+          </p>
+
+          <div class="card-decoration">EICA</div>
+
+        </div>
+
+        <div class="about-side-cards">
+
+          <div class="about-card small-about-card">
+            <span class="small-card-icon">✧</span>
+            <h3>التطوير المستمر</h3>
+            <p>
+              نسعى إلى تطوير أدواتنا وخدماتنا باستمرار لمواكبة
+              التطورات التقنية.
+            </p>
+          </div>
+
+          <div class="about-card small-about-card">
+            <span class="small-card-icon">◎</span>
+            <h3>بيئة تعليمية</h3>
+            <p>
+              نظام رقمي يساعد على تنظيم الحسابات والمحتوى
+              ومتابعة التقدم التعليمي.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- الرؤية والرسالة -->
+    <section class="content-section vision-section" id="vision">
+
+      <div class="section-heading">
+
+        <span class="section-kicker">OUR DIRECTION</span>
+
+        <h2>
+          رؤيتنا
+          <span class="gradient-text">ورسالتنا</span>
+        </h2>
+
+        <p>
+          نؤمن بأن المعرفة هي البداية الحقيقية لصناعة المستقبل.
+        </p>
+
+      </div>
+
+      <div class="vision-grid">
+
+        <article class="vision-card">
+
+          <div class="vision-number">01</div>
+
+          <div class="vision-icon">◉</div>
+
+          <h3>رؤيتنا</h3>
+
+          <p>
+            أن نكون بيئة تعليمية وتقنية متطورة تسهم في إعداد
+            كوادر قادرة على التعامل مع متطلبات العصر الرقمي
+            والمشاركة في صناعة المستقبل.
+          </p>
+
+          <div class="vision-line"></div>
+
+        </article>
+
+        <article class="vision-card">
+
+          <div class="vision-number">02</div>
+
+          <div class="vision-icon">✧</div>
+
+          <h3>رسالتنا</h3>
+
+          <p>
+            تقديم تجربة تعليمية منظمة تعتمد على المعرفة
+            والتطوير المستمر، وتوفير أدوات رقمية تساعد
+            الطلاب والإدارة على تحقيق أفضل استفادة.
+          </p>
+
+          <div class="vision-line"></div>
+
+        </article>
+
+        <article class="vision-card">
+
+          <div class="vision-number">03</div>
+
+          <div class="vision-icon">⌬</div>
+
+          <h3>هدفنا</h3>
+
+          <p>
+            بناء مجتمع مهتم بالتكنولوجيا والابتكار،
+            وتشجيع التعلم والتطبيق العملي وتنمية المهارات.
+          </p>
+
+          <div class="vision-line"></div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+    <!-- المميزات -->
+    <section class="content-section features-section" id="features">
+
+      <div class="section-heading">
+
+        <span class="section-kicker">PLATFORM EXPERIENCE</span>
+
+        <h2>
+          تجربة رقمية
+          <span class="gradient-text">متكاملة</span>
+        </h2>
+
+        <p>
+          تم تصميم المنصة لتوفير تجربة استخدام منظمة للطلاب والإدارة.
+        </p>
+
+      </div>
+
+      <div class="features-grid">
+
+        <article class="feature-card">
+          <div class="feature-icon">♙</div>
+          <h3>حسابات الطلاب</h3>
+          <p>
+            حساب شخصي لكل طالب لمتابعة بياناته ومحتواه التعليمي.
+          </p>
+          <span class="feature-arrow">↗</span>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">▣</div>
+          <h3>إدارة المحتوى</h3>
+          <p>
+            تنظيم المحتوى التعليمي وإتاحته للطلاب المصرح لهم.
+          </p>
+          <span class="feature-arrow">↗</span>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">◷</div>
+          <h3>متابعة التقدم</h3>
+          <p>
+            متابعة تقدم الطالب والأنشطة والاختبارات والنتائج.
+          </p>
+          <span class="feature-arrow">↗</span>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">♜</div>
+          <h3>لوحة الإدارة</h3>
+          <p>
+            أدوات لإدارة الطلاب والفروع والصلاحيات والمحتوى.
+          </p>
+          <span class="feature-arrow">↗</span>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">♧</div>
+          <h3>الإشعارات</h3>
+          <p>
+            متابعة التنبيهات والإعلانات والتحديثات الخاصة بالحساب.
+          </p>
+          <span class="feature-arrow">↗</span>
+        </article>
+
+        <article class="feature-card">
+          <div class="feature-icon">◇</div>
+          <h3>الشهادات والنتائج</h3>
+          <p>
+            عرض نتائج الاختبارات والشهادات المرتبطة بالحساب.
+          </p>
+          <span class="feature-arrow">↗</span>
+        </article>
+
+      </div>
+
+    </section>
+
+    <!-- بوابة الحسابات -->
+    <section class="access-section" id="access">
+
+      <div class="access-background"></div>
+
+      <div class="access-content">
+
+        <span class="section-kicker">YOUR DIGITAL GATEWAY</span>
+
+        <h2>
+          ابدأ رحلتك مع
+          <span class="gradient-text">EICA</span>
+        </h2>
+
+        <p>
+          اختر بوابتك للدخول إلى النظام.
+        </p>
+
+        <div class="access-buttons">
+
+          <button class="access-card student-access" id="studentAccess">
+
+            <div class="access-card-icon">♙</div>
+
+            <div>
+              <h3>بوابة الطلاب</h3>
+              <p>الدخول إلى حسابك الشخصي</p>
+            </div>
+
+            <span class="access-arrow">←</span>
+
+          </button>
+
+          <button class="access-card admin-access" id="adminAccess">
+
+            <div class="access-card-icon">♜</div>
+
+            <div>
+              <h3>بوابة الإدارة</h3>
+              <p>إدارة الأكاديمية والمنصة</p>
+            </div>
+
+            <span class="access-arrow">←</span>
+
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- نافذة تسجيل الدخول -->
+  <div class="modal-overlay" id="loginModal">
+
+    <div class="login-modal">
+
+      <button class="modal-close" id="closeLoginModal">×</button>
+
+      <div class="modal-logo">
+        <div class="eica-logo">
+          <span class="logo-symbol">E</span>
+        </div>
+      </div>
+
+      <span class="modal-kicker">EICA SECURE ACCESS</span>
+
+      <h2 id="loginTitle">تسجيل الدخول</h2>
+
+      <p id="loginDescription">
+        أدخل بيانات حسابك للمتابعة.
+      </p>
+
+      <form id="loginForm">
+
+        <input type="hidden" id="loginType" value="student">
+
+        <div class="form-group">
+
+          <label for="loginIdentifier">اسم المستخدم أو البريد الإلكتروني</label>
+
+          <input
+            type="text"
+            id="loginIdentifier"
+            placeholder="أدخل اسم المستخدم أو البريد الإلكتروني"
+            autocomplete="username"
+            required
+          >
+
+        </div>
+
+        <div class="form-group">
+
+          <label for="loginPassword">كلمة المرور</label>
+
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="أدخل كلمة المرور"
+            autocomplete="current-password"
+            required
+          >
+
+        </div>
+
+        <div class="form-options">
+
+          <label class="remember-option">
+            <input type="checkbox" id="rememberLogin">
+            <span>تذكرني</span>
+          </label>
+
+          <button type="button" id="forgotPassword">
+            نسيت كلمة المرور؟
+          </button>
+
+        </div>
+
+        <button type="submit" class="login-submit" id="loginSubmit">
+          <span>دخول إلى المنصة</span>
+          <span>←</span>
+        </button>
+
+        <div class="form-status" id="loginStatus" role="status"></div>
+
+      </form>
+
+      <div class="modal-bottom">
+        <span>SECURED BY EICA DIGITAL SYSTEM</span>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- نافذة إنشاء حساب طالب -->
+  <div class="modal-overlay" id="registerModal">
+
+    <div class="login-modal register-modal">
+
+      <button class="modal-close" id="closeRegisterModal">×</button>
+
+      <div class="modal-logo">
+        <div class="eica-logo">
+          <span class="logo-symbol">E</span>
+        </div>
+      </div>
+
+      <span class="modal-kicker">STUDENT REGISTRATION</span>
+
+      <h2>إنشاء حساب طالب</h2>
+
+      <p>أدخل بياناتك لإرسال طلب إنشاء حساب.</p>
+
+      <form id="registerForm">
+
+        <div class="form-group">
+          <label for="registerName">الاسم بالكامل</label>
+          <input type="text" id="registerName" required>
+        </div>
+
+        <div class="form-group">
+          <label for="registerEmail">البريد الإلكتروني</label>
+          <input type="email" id="registerEmail" required>
+        </div>
+
+        <div class="form-group">
+          <label for="registerPhone">رقم الهاتف</label>
+          <input type="tel" id="registerPhone" required>
+        </div>
+
+        <div class="form-group">
+          <label for="registerPassword">كلمة المرور</label>
+          <input type="password" id="registerPassword"
+            minlength="8" autocomplete="new-password" required>
+        </div>
+
+        <button type="submit" class="login-submit">
+          إرسال طلب التسجيل
+          <span>←</span>
+        </button>
+
+        <div class="form-status" id="registerStatus" role="status"></div>
+
+      </form>
+
+      <div class="modal-bottom">
+        يتم تفعيل حساب الطالب وفقاً لإجراءات الأكاديمية.
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- التذييل -->
+  <footer class="main-footer">
+
+    <div class="footer-main">
+
+      <div class="footer-brand">
+
+        <div class="brand-mini">
+          <div class="eica-logo footer-logo">
+            <span class="logo-symbol">E</span>
+          </div>
+
+          <div>
+            <h2>EICA</h2>
+            <span>INTERNATIONAL ACADEMY</span>
+          </div>
+        </div>
+
+        <p>
+          THE FUTURE OF TECHNOLOGY STARTS HERE
+        </p>
+
+      </div>
+
+      <div class="footer-links">
+        <h3>روابط سريعة</h3>
+        <a href="#home">الرئيسية</a>
+        <a href="#about">عن الأكاديمية</a>
+        <a href="#vision">رؤيتنا ورسالتنا</a>
+        <a href="#features">مميزات المنصة</a>
+      </div>
+
+      <div class="footer-links">
+        <h3>بوابات الدخول</h3>
+        <button id="footerStudentLogin">بوابة الطلاب</button>
+        <button id="footerAdminLogin">بوابة الإدارة</button>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 EICA. ALL RIGHTS RESERVED.</span>
+      <span>DESIGNED FOR THE FUTURE <b>◆</b></span>
+    </div>
+
+  </footer>
+
+  <!-- زر العودة للأعلى -->
+  <button class="back-to-top" id="backToTop" aria-label="العودة للأعلى">
+    ↑
+  </button>
+
+</body>
+          </html>
